@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import time
 from typing import Dict, List, Optional, Set, Tuple, Any, cast
 
 import aiohttp
@@ -73,7 +74,11 @@ class Queries(object):
         :return: deserialized REST JSON output
         """
 
-        for _ in range(60):
+        max_202_retries = max(1, int(os.getenv("MAX_202_RETRIES", "6")))
+        max_202_wait_seconds = float(os.getenv("MAX_202_WAIT_SECONDS", "30"))
+        max_202_delay_seconds = float(os.getenv("MAX_202_DELAY_SECONDS", "8"))
+        start_time = time.monotonic()
+        for attempt in range(max_202_retries):
             headers = {
                 "Authorization": f"token {self.access_token}",
             }
@@ -91,7 +96,21 @@ class Queries(object):
                 if r_async.status == 202:
                     # print(f"{path} returned 202. Retrying...")
                     print(f"A path returned 202. Retrying...")
-                    await asyncio.sleep(2)
+                    retry_after = r_async.headers.get("Retry-After")
+                    try:
+                        retry_after_seconds = (
+                            float(retry_after) if retry_after is not None else None
+                        )
+                    except ValueError:
+                        retry_after_seconds = None
+                    elapsed = time.monotonic() - start_time
+                    if elapsed >= max_202_wait_seconds:
+                        break
+                    delay_seconds = min(max_202_delay_seconds, 2**attempt)
+                    if retry_after_seconds is not None:
+                        delay_seconds = max(delay_seconds, retry_after_seconds)
+                    remaining = max_202_wait_seconds - elapsed
+                    await asyncio.sleep(min(delay_seconds, remaining))
                     continue
 
                 result = await r_async.json()
@@ -108,7 +127,21 @@ class Queries(object):
                     )
                     if r_requests.status_code == 202:
                         print(f"A path returned 202. Retrying...")
-                        await asyncio.sleep(2)
+                        retry_after = r_requests.headers.get("Retry-After")
+                        try:
+                            retry_after_seconds = (
+                                float(retry_after) if retry_after is not None else None
+                            )
+                        except ValueError:
+                            retry_after_seconds = None
+                        elapsed = time.monotonic() - start_time
+                        if elapsed >= max_202_wait_seconds:
+                            break
+                        delay_seconds = min(max_202_delay_seconds, 2**attempt)
+                        if retry_after_seconds is not None:
+                            delay_seconds = max(delay_seconds, retry_after_seconds)
+                        remaining = max_202_wait_seconds - elapsed
+                        await asyncio.sleep(min(delay_seconds, remaining))
                         continue
                     elif r_requests.status_code == 200:
                         return r_requests.json()
