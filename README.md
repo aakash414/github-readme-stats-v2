@@ -99,7 +99,9 @@ For more information on inaccuracies, see issue
    - To limit how long the workflow waits when the GitHub REST API returns 202
      responses, set environment variables in the workflow: `MAX_202_RETRIES`
      (default `6`), `MAX_202_WAIT_SECONDS` (default `30`), and
-     `MAX_202_DELAY_SECONDS` (default `8`).
+     `MAX_202_DELAY_SECONDS` (default `8`). This repository's workflow sets them
+     to `1`, `0`, and `0` respectively to avoid long loops; raise them if you
+     want more complete stats at the cost of longer runs.
    - These other values are added as secrets by default to prevent leaking
      information about private repositories. If you're not worried about that,
      you can change the values directly [in the Actions workflow
