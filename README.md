@@ -96,6 +96,10 @@ For more information on inaccuracies, see issue
      [main
      workflow](https://github.com/jstrieb/github-stats/blob/master/.github/workflows/main.yml))
      called `EXCLUDE_FORKED_REPOS` with a value of `true`.
+   - To limit how long the workflow waits when the GitHub REST API returns 202
+     responses, set environment variables in the workflow: `MAX_202_RETRIES`
+     (default `6`), `MAX_202_WAIT_SECONDS` (default `30`), and
+     `MAX_202_DELAY_SECONDS` (default `8`).
    - These other values are added as secrets by default to prevent leaking
      information about private repositories. If you're not worried about that,
      you can change the values directly [in the Actions workflow
